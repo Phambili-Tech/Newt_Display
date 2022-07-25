@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //#include "USB.h"
 #define SWVERSION_MAJOR 1
 #define SWVERSION_MINOR 0
-#define SWVERSION_PATCH 0
+#define SWVERSION_PATCH 1
 
 /* You only need to format SPIFFS the first time you run a
    test or else use the SPIFFS plugin to create a partition
@@ -370,6 +370,7 @@ void refreshCheck(boolean ignore = false) {
       minorRefresh = false;
     } else {
       requestWeatherForecast = true;
+      requestAirQuality = true;
       requestOblique = true;
       requestQuote = true;
       minorRefresh = true;
