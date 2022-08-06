@@ -9,7 +9,21 @@ This library includes the source code used in the Newt display. You can modify t
 
 You can read more about Newt at [*https://phambili.tech/newt*](https://phambili.tech/newt)
 
+Planned Engancements/Fixes for next release
+---------------------------------------------
 
+Version 1.1.0 - roadmap
+- User Option: switch between 12 and 24 hour time format
+- User Option: switch between Imperial and Metric units
+- User Option: switch switch between default quotes and weather display screen
+- User Option: download beta versions of the code
+- Arduino library examples (Hello World, Wifi connect to get time, connect to MQTT)
+
+Version 1.1.X - roadmap
+- change timezone
+- change location
+- icon documentation
+- service-sde code docuumentation
 
 License Information
 -------------------
@@ -18,6 +32,5 @@ This product is _**open source**_!
 
 Please review the LICENSE.md file for license information. 
 
-If you have any questions or concerns on licensing, please contact constantinkoch@outlook.com.
 
 Distributed as-is; no warranty is given.
