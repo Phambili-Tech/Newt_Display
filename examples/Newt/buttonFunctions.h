@@ -42,7 +42,9 @@ void IRAM_ATTR USB_isr() {
 void beep() {
   digitalWrite(SPKR_CTRL, HIGH);
   ledcWriteTone(BUZZER_CHANNEL, BEEP_FREQUENCY);
-  delay(75);
+}
+
+void beepOff() {
   ledcWriteTone(BUZZER_CHANNEL, 0);
   digitalWrite(SPKR_CTRL, LOW);
 }
@@ -247,11 +249,26 @@ void selectFunction() {
           case SETTINGS :
             renderSettingsDisplay();
             break;
+          case SETTINGSINFO :
+            renderSettingsInfoDisplay();
+            break;
           case AIRQUALITY :
             renderAQDisplay();
             break;
+          case UV :
+            renderUVDisplay();
+            break;
           case OBLIQUE :
             renderObliqueDisplay();
+            break;
+          case QUOTE :
+            renderQuoteDisplay();
+            break;
+          case RIDDLE :
+            renderRiddleDisplay();
+            break;
+          case ALERTS :
+            renderAlertsDisplay();
             break;
           case POMODORO :
             if (timerEnabled && !pomodoroEnabled) {
@@ -288,14 +305,29 @@ void selectFunction() {
         case SETTINGS :
           handleSettingsDetails(selectedTouchpad);
           break;
+        case SETTINGSINFO :
+          handleSettingsInfoDetails(selectedTouchpad);
+          break;
         case AIRQUALITY :
           handleAQDisplay(selectedTouchpad);
+          break;
+        case UV :
+          handleUVDisplay(selectedTouchpad);
           break;
         case OBLIQUE :
           handleObliqueDisplay(selectedTouchpad);
           break;
+        case QUOTE :
+          handleQuoteDisplay(selectedTouchpad);
+          break;
+        case RIDDLE :
+          handleRiddleDisplay(selectedTouchpad);
+          break;
+        case ALERTS :
+          handleAlertsDisplay(selectedTouchpad);
+          break;
         case CANCEL :
-          handleObliqueDisplay(selectedTouchpad);
+          handleObliqueDisplay(selectedTouchpad); //can be used for an exit/cancel
           break;
         case HOME :
           if (showPomodoroMenu) {

@@ -17,16 +17,22 @@ void disconnectWifi() {
 }
 
 void checkReadyToSleepArray() {
-  if (readyToSleep[sleepCheckWeather] == 0 && readyToSleep[sleepCheckQuote] == 0 && readyToSleep[sleepCheckAQI] == 0 && readyToSleep[sleepCheckOblique] == 0 && currentDisplay == HOME) {
+  int checkSum = 0;
+  for (int i = 0; i < readyToSleepCount; i++) {
+    checkSum += readyToSleep[i];
+  }
+
+  if (checkSum < 1 && currentDisplay == HOME) {
     timeoutCounter = 0;
   } else if (currentDisplay == HOME) {
     renderMainDisplay();
   }
+
 }
 
 void setCurrentWeather(long epoch, int t, int offsetVal, const char* i) {
   showWeather = true;
-  currWeather = t;
+  //currWeather = t;
   strcpy(currWeatherIcon, i);
 }
 
@@ -37,21 +43,29 @@ void setQuote(const char* q, const char* a) {
 }
 
 void setOblique(const char* o) {
-  showQuote = true;
   strcpy(currOblique, o);
   Serial.println(o);
+}
+
+void setRiddle(const char* r, const char* a, const char* at, int cat) {
+  strcpy(dailyRiddle, r);
+  strcpy(dailyRiddleAnswer, a);
+  strcpy(dailyRiddleAttr, at);
+  riddleCategoryNo = cat;
 }
 
 void sendRequest(const char* request) {
 
   Serial.print("making request for: "); Serial.println(request);
 
-  const size_t capacity = JSON_OBJECT_SIZE(7) + 200;
-  DynamicJsonDocument doc(capacity);
+  StaticJsonDocument<300> doc;
 
   doc["deviceID"] = uniqId;
   doc["userID"] = "N/A";
   doc["request"] = request;
+  doc["majorV"] = SWVERSION_MAJOR;
+  doc["minorV"] = SWVERSION_MINOR;
+  doc["patchV"] = SWVERSION_PATCH;
 
   char buf[512];
   serializeJson(doc, buf);
@@ -61,24 +75,11 @@ void sendRequest(const char* request) {
 void messageReceived(String &topic, String &payload) {
   Serial.print("Received. topic=");
   Serial.println(topic);
+  Serial.print("Received. payload=");
+  Serial.println(payload);
 
-  if (topic.indexOf("current") > 0) {
-    DynamicJsonDocument doc(150);
-    deserializeJson(doc, payload);
-
-    int t = doc["t"];
-    const char* i = doc["i"];
-    long epoch = doc["epoch"];
-    int offsetVal = doc["offset"];
-    latest_ver_major = doc["maj"];
-    latest_ver_minor = doc["min"];
-    latest_ver_patch = doc["pat"];
-
-    checkLatestVersion();
-     
-    setCurrentWeather(epoch, t, offsetVal, (const char *) i);
-    readyToSleep[sleepCheckWeather] = 0;
-    checkReadyToSleepArray();
+  if (payload.length()<1){
+    return;
   }
 
   if (topic.indexOf("quote") > 0) {
@@ -95,41 +96,194 @@ void messageReceived(String &topic, String &payload) {
 
   }
 
-  if (topic.indexOf("forecast") > 0) {
-    DynamicJsonDocument doc(2000);
+  if (topic.indexOf("obliques") > 0) {
+
+    StaticJsonDocument<250> doc;
     deserializeJson(doc, payload);
 
-    JsonObject current = doc["current"];
-    int t  = current["t"];
-    const char* i  = current["i"];
-    long epoch = current["epoch"];
-    int offsetVal = current["offset"];
+    const char* o = doc["o"];
 
-    setCurrentWeather(epoch, t, offsetVal, (const char *) i);
+    setOblique((const char *) o);
+    readyToSleep[sleepCheckOblique] = 0;
+    checkReadyToSleepArray();
 
-    SPIFFS.remove("/forecast.json");
+  }
 
-    File forecastJSON = SPIFFS.open("/forecast.json", FILE_WRITE);
-    if (!forecastJSON) {
+  if (topic.indexOf("riddle") > 0) {
+
+    StaticJsonDocument<1024> doc;
+    deserializeJson(doc, payload);
+
+    int no = doc["no"]; // 21
+    const char* cd = doc["cd"]; // "Brain Teaser"
+    int cno = doc["cno"]; // 2
+    const char* R = doc["R"]; // "You're escaping a maze, and there are three doors in front of you. The ...
+    const char* A = doc["A"]; // "The door on the right. A lion that hasn't eaten in three months would be ...
+    const char* Attr = doc["Attr"]; // "Reader's Digest"
+
+    setRiddle( (const char*) R, (const char*)  A, (const char*)  Attr, cno);
+
+
+    readyToSleep[sleepCheckRiddle] = 0;
+    checkReadyToSleepArray();
+
+  }
+
+  if (topic.indexOf("currentWeather") > 0) {
+    StaticJsonDocument<600> doc;
+
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error) {
+      Serial.print("deserializeJson() failed: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    strcpy(currWeatherIcon, doc["i"]);
+    currentTemp[0] = doc["t"][0];
+    currentTemp[1] = doc["t"][1];
+    currentFeelsTemp[0] = doc["fl"][0];
+    currentFeelsTemp[1] = doc["fl"][1];
+    currHumidity = doc["h"];
+    currUV = doc["uv"];
+
+    showWeather = true;
+
+    SPIFFS.remove("/currentWeather.json");
+
+    File currentWeatherJSON = SPIFFS.open("/currentWeather.json", FILE_WRITE);
+    if (!currentWeatherJSON) {
       Serial.println("There was an error opening the file for writing");
       return;
     }
 
-    if (serializeJson(doc, forecastJSON) == 0) {
+    if (serializeJson(doc, currentWeatherJSON) == 0) {
       Serial.println(F("Failed to write to file"));
     }
 
-    forecastJSON.close();
+    currentWeatherJSON.close();
 
-    readyToSleep[sleepCheckWeather] = 0;
+    readyToSleep[sleepCheckCWeather] = 0;
     checkReadyToSleepArray();
   }
 
+  if (topic.indexOf("dailyWeather") > 0) {
+
+    StaticJsonDocument<2048> doc;
+
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error) {
+      Serial.print("deserializeJson() failed: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    int dayCounter = 0;
+
+    for (JsonObject item : doc.as<JsonArray>()) {
+
+      JsonArray ss = item["ss"];
+      JsonArray sr = item["sr"];
+
+      if (dayCounter < 1) {
+        dayCounter++;
+        currDayNo = item["dno"];
+        strcpy(todayWDay, item["day"]);
+
+        strcpy(dailyWeatherIcon[0], item["i"]);
+
+        todayHiTemp[0] = item["tmax"][0];
+        todayHiTemp[1] = item["tmax"][1];
+        todayLoTemp[0] = item["tmin"][0];
+        todayLoTemp[1] = item["tmin"][1];
+        strcpy(todaySunrise[0], sr[0]);
+        strcpy(todaySunrise[1], sr[1]);
+        strcpy(todaySunrise[2], sr[2]);
+        strcpy(todaySunset[0], ss[0]);
+        strcpy(todaySunset[1], ss[1]);
+        strcpy(todaySunset[2], ss[2]);
+      } else if (dayCounter < 2) {
+        dayCounter++;
+
+        strcpy(dailyWeatherIcon[1], item["i"]);
+
+        strcpy(tomWDay, item["day"]);
+        tomHiTemp[0] = item["tmax"][0];
+        tomHiTemp[1] = item["tmax"][1];
+        tomLoTemp[0] = item["tmin"][0];
+        tomLoTemp[1] = item["tmin"][1];
+        strcpy(tomSunrise[0], sr[0]);
+        strcpy(tomSunrise[1], sr[1]);
+        strcpy(tomSunrise[2], sr[2]);
+        strcpy(tomSunset[0], ss[0]);
+        strcpy(tomSunset[1], ss[1]);
+        strcpy(tomSunset[2], ss[2]);
+
+      }
+
+    }
+
+    showDailyWeather = true;
+
+    SPIFFS.remove("/dailyWeather.json");
+
+    File dailyWeatherJSON = SPIFFS.open("/dailyWeather.json", FILE_WRITE);
+    if (!dailyWeatherJSON) {
+      Serial.println("There was an error opening the file for daily weather writing");
+      return;
+    }
+
+    if (serializeJson(doc, dailyWeatherJSON) == 0) {
+      Serial.println(F("Failed to write daily weather to file"));
+    }
+
+    dailyWeatherJSON.close();
+
+    readyToSleep[sleepCheckDWeather] = 0;
+    checkReadyToSleepArray();
+
+  }
+
+  if (topic.indexOf("hourlyWeather") > 0) {
+
+    StaticJsonDocument<2048> doc;
+
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (error) {
+      Serial.print("deserializeJson() failed: ");
+      Serial.println(error.c_str());
+      return;
+    }
+
+    SPIFFS.remove("/hourlyWeather.json");
+
+    File hourlyWeatherJSON = SPIFFS.open("/hourlyWeather.json", FILE_WRITE);
+    if (!hourlyWeatherJSON) {
+      Serial.println("There was an error opening the file for hourly weather writing");
+      return;
+    }
+
+    if (serializeJson(doc, hourlyWeatherJSON) == 0) {
+      Serial.println(F("Failed to write hourly weather to file"));
+    }
+
+    hourlyWeatherJSON.close();
+
+    readyToSleep[sleepCheckHWeather] = 0;
+    checkReadyToSleepArray();
+
+  }
 
   if (topic.indexOf("airQuality") > 0) {
     Serial.println(F("Received AQ"));
-    DynamicJsonDocument doc(1200);
+    StaticJsonDocument<1200> doc;
     deserializeJson(doc, payload);
+
+    JsonObject current = doc["current"];
+    currAQ = current["aqi"]; // 9
 
     SPIFFS.remove("/airquality.json");
 
@@ -152,20 +306,7 @@ void messageReceived(String &topic, String &payload) {
   }
 
 
-  if (topic.indexOf("obliques") > 0) {
-
-    StaticJsonDocument<250> doc;
-    deserializeJson(doc, payload);
-
-    const char* o = doc["o"];
-
-    setOblique((const char *) o);
-    readyToSleep[sleepCheckOblique] = 0;
-    checkReadyToSleepArray();
-
-  }
-
-  if (topic.indexOf("todo") > 0) {
+  /*if (topic.indexOf("todo") > 0) {
 
     DynamicJsonDocument doc(4000);
     deserializeJson(doc, payload);
@@ -185,36 +326,48 @@ void messageReceived(String &topic, String &payload) {
     todoJSON.close();
     updatedTodos = true;
 
-  }
+    }*/
 
 }
 
 void connect() {
   Serial.print("checking wifi...");
+  wifiTimeoutCounter = millis() + MILLS_BEFORE_WIFI_TIMEOUT;
+
+  wifiFailed = false;
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
-    delay(1000);
+    delay(500);
+    if (millis() > wifiTimeoutCounter) {
+      wifiFailed = true;
+      break;
+    }
   }
 
-  Serial.print("\nconnecting...");
-  while (!client.connect(uniqId, mqtt_user, mqtt_token)) {
-    Serial.print(".");
-    delay(1000);
-  }
+  if (!wifiFailed) {
 
-  Serial.println("\nconnected!");
+    Serial.print("\nconnecting...");
+    while (!client.connect(uniqId, mqtt_user, mqtt_token)) {
+      Serial.print(".");
+      delay(1000);
+    }
 
-  for (int i = 0; i < numOfTopics; i++) {
-    char topic[60];
-    strcpy(topic, uniqId);
-    strcat(topic, "/");
-    strcat(topic, topics[i]);
-    client.subscribe(topic);
-    Serial.println(topic);
+    Serial.println("\nconnected!");
+
+    for (int i = 0; i < numOfTopics; i++) {
+      char topic[60];
+      strcpy(topic, uniqId);
+      strcat(topic, "/");
+      strcat(topic, topics[i]);
+      client.subscribe(topic);
+      Serial.println(topic);
+    }
+
+  } else {
+    Serial.print("need an error message");
   }
 
 }
-
 
 void mqttLoop() {
 
@@ -223,7 +376,7 @@ void mqttLoop() {
     //do I need this if statement
     if (WiFi.status() != WL_CONNECTED) {
 
-    WiFi.begin();
+      WiFi.begin();
 
     }
     client.loop();
@@ -234,6 +387,7 @@ void mqttLoop() {
     }
   }
 }
+
 
 void requestForecast() {
   Serial.println("Requesting Weather Forecast");
@@ -265,10 +419,23 @@ void requestDailyOblique() {
   sendRequest("obliques");
 }
 
+void requestDailyRiddle() {
+  Serial.println("Requesting Daily Riddle");
+  sendRequest("riddle");
+}
+
 void requestAQ() {
   Serial.println("Requesting Air Quality");
   sendRequest("airQuality");
 }
+
+void requestWeatherForecastsCall() {
+  Serial.println("Requesting Weather Forecasts");
+  sendRequest("allForecasts");
+}
+
+
+
 
 void setupWifiDisplay() {
 
@@ -416,6 +583,12 @@ void getDeviceDetails() {
   strcpy(units, outdoc["units"]);
   Serial.println(units);
 
+  if (strcmp(units, "imperial") == 0) {
+    setDefaultMeasureOnWifi(IMPERIALMEASURE - 1);
+  } else {
+    setDefaultMeasureOnWifi(METRICMEASURE - 1);
+  }
+
   strcpy(mqtt_server, outdoc["mqtt_server"]);
   Serial.println(mqtt_server);
 
@@ -480,6 +653,12 @@ void upgradeSoftwareDisplay(int message = 0) {
       display.setFont(&FreeSans9pt7b);
       display.setCursor(upgradeStartX + indent, upgradeStartY);
       display.print("Upgrading from "); display.print(SWVERSION_MAJOR); display.print("."); display.print(SWVERSION_MINOR); display.print("."); display.print(SWVERSION_PATCH);
+
+      if (RC){
+        display.print("-RC"); 
+        display.print(SWVERSION_RC); 
+      }
+      
       display.print(" to "); display.print(latest_ver_major); display.print("."); display.print(latest_ver_minor); display.print("."); display.print(latest_ver_patch);
       display.refresh();
       break;
@@ -620,10 +799,7 @@ void upgradeSoftwareDisplay(int message = 0) {
     ESP.restart();
   }
 
-
 }
-
-
 
 // OTA Logic
 void execOTA() {

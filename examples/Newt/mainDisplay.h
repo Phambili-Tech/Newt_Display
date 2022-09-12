@@ -3,7 +3,6 @@ boolean showSeconds = false;
 int menuStart = 0;
 boolean overrideAlarmEnabled = false;
 
-
 struct MENU_ICON {
   char displayName[10];
   char displayIcon[2];
@@ -21,24 +20,33 @@ struct MENU_ICON {
 #define KEYPAD 6
 #define WIFISETUP 8
 #define SETTINGS 9
+#define SETTINGSINFO 91
 #define AIRQUALITY 10
 #define OBLIQUE 11
 #define UPGRADE 12
 #define POMODORO 13
+#define UV 14
+#define QUOTE 15
+#define ALERTS 16
+#define RIDDLE 17
 #define DUMMY 200
 #define CANCEL 201
 #define FACTORYCHECK 202
 
-const byte numOfMenuItems = 8; //8;
+const byte numOfMenuItems = 12; //8;
 MENU_ICON menuIconArray[numOfMenuItems] = {
-  {"ALARM", "a", ALARM, 0},
-  {"TIMER", "g", TIMER, 0},
-  {"WEATHER", "x", WEATHER, 0},
-  {"HABITS", "c", HABIT, 0},
-  {"AIR QUAL", "p", AIRQUALITY, 0},
-  {"OBLIQUE", "T", OBLIQUE, 0},
-  {"POMO", "Q", POMODORO , 0},
-  {"SETTINGS", "m", SETTINGS, 0}
+  {"ALARM", alarmG, ALARM, 0},
+  {"TIMER", hourglassG, TIMER, 0},
+  {"WEATHER", weatherG, WEATHER, 0},
+  {"HABITS", calendarG, HABIT, 0},
+  {"AIR QUAL", pollutionG, AIRQUALITY, 0},
+  {"UV", uvG, UV , 0},
+  {"POMO", tomatoG, POMODORO , 0},
+  {"QUOTE", quoteG, QUOTE, 0},
+  {"OBLIQUE", slashG, OBLIQUE, 0},
+  {"RIDDLE", puzzleG, RIDDLE, 0},
+  {"ALERTS", warningG, ALERTS, 0},
+  {"SETTINGS", equalizerG, SETTINGS, 0}
 };
 
 void batteryManagement() {
@@ -86,6 +94,11 @@ void checkLatestVersion() {
     return;
   }
 
+  if ((SWVERSION_MAJOR == latest_ver_major) && (SWVERSION_MINOR == latest_ver_minor) && (SWVERSION_PATCH == latest_ver_patch) && SWVERSION_RC){
+    versionUpdateAvailable = true;
+    return;
+  } 
+
   versionUpdateAvailable = false;
 
 }
@@ -105,7 +118,7 @@ void renderQuote(int startY) {
   strcpy(quote, currQuote);
 
   char delim[] = " ";
-  int lineLimit = displayWidth - (displayMarginW * 4.5); //note: we are ok going a little past the self-imposed margins
+  int lineLimit = displayWidth - (displayMarginW * 5.5) - 5; //note: we are ok going a little past the self-imposed margins
   int lineLength = 0;
   int lineCount = 1;
 
@@ -152,7 +165,240 @@ void renderQuote(int startY) {
 
 }
 
-void renderPowerStatus() {
+void renderCurrentWeather (int startY, int wday) {
+
+  int hi;
+  int lo;
+  char sr[6];
+  char sram[3];
+  char ss[6];
+  char ssam[3];
+  char weekDay[5];
+  char dayWeatherIcon[2];
+
+  bool twh = 1;
+  if (isTwentyFourHour()) {
+    twh = 0;
+  }
+
+  if (wday == currDayNo) {
+
+    strcpy(weekDay, todayWDay);
+
+    hi = todayHiTemp[unitSetting];
+    lo = todayLoTemp[unitSetting];
+
+    strcpy(sr, todaySunrise[twh]);
+    strcpy(sram, todaySunrise[2]);
+
+    strcpy(ss, todaySunset[twh]);
+    strcpy(ssam, todaySunset[2]);
+
+    strcpy(dayWeatherIcon, dailyWeatherIcon[0]);
+  } else {
+
+    strcpy(weekDay, tomWDay);
+
+    hi = tomHiTemp[unitSetting];
+    lo = tomLoTemp[unitSetting];
+
+    strcpy(sr, tomSunrise[twh]);
+    strcpy(sram, tomSunrise[2]);
+
+    strcpy(ss, tomSunset[twh]);
+    strcpy(ssam, tomSunset[2]);
+
+    strcpy(dayWeatherIcon, dailyWeatherIcon[1]);
+
+  }
+
+  display.setFont(&FreeSansBold18pt7b);
+  display.getTextBounds("X", 0, 0, &xP, &yP, &w, &h);
+  startY = startY + h;
+  int startX = displayMarginW;
+  int xTab = (displayWidth - (displayMarginW * 2)) / 3  + 10;
+
+  int xLabel = displayMarginW;
+  int xLeft = 20;
+  int xMid = 125;
+  int xRight = 280;
+  int xLabelDay = xRight - 10;
+  int yLabelDay = startY + 10;
+  int yTab = 45;
+  int dayBoxH = 85;
+  int dayBoxW = 120;
+  int dayBoxR = 4;
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.getTextBounds("X", 0, 0, &xP, &yP, &w, &h);
+  startY += h;
+  int lineTab = h + 4;
+
+
+  //Row 1, Column 1
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(xLeft, startY);
+  display.print("Feels Like");
+
+
+  //----
+  char tempChar[4];
+  itoa(currentFeelsTemp[unitSetting], tempChar, 10);
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.getTextBounds(tempChar, 0, 0, &xP, &yP, &w, &h);
+
+  //y += h + 9;//changed from 5 to 9
+
+  display.setCursor(xLeft, startY + lineTab);
+  display.print(tempChar);
+  display.fillCircle(xLeft + w + 8, startY + lineTab - (h * .8), 4, TEXTCOLOR);
+  display.fillCircle(xLeft + w + 8, startY + lineTab - (h * .8), 1, BGCOLOR);
+
+
+  //-----
+
+
+  //Row 1, Column 2
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(xMid, startY);
+  display.print("Air Quality");
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(xMid, startY + lineTab);
+
+  char * aq = aqDesc (currAQ);
+  display.print(aq);
+  free (aq);
+
+
+  //row 2
+
+  startY += yTab;
+  //Row 2, Column 1
+  startX = displayMarginW; //+ xTabStart;
+  display.setCursor(xLeft, startY);
+
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(xLeft, startY);
+  display.print("Humidity");
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(xLeft, startY + lineTab);
+  display.print(currHumidity);
+  display.print("%");
+
+
+  //Row 2, Column 2
+  display.setCursor(startX, startY);
+
+  display.setFont(&FreeSansBold9pt7b);
+  display.setCursor(xMid, startY);
+  display.print("UV Index");
+
+  display.setFont(&FreeSansBold12pt7b);
+  display.setCursor(xMid, startY + lineTab);
+  char * uv = uvDesc (currUV);
+  display.print(uv);
+  free (uv);
+
+
+  //TODAY Column
+
+  if (!showDailyWeather) {
+    return;
+  }
+
+  display.setFont(&FreeSansBold7pt7b);
+  display.getTextBounds("MON", 0, 0, &xP, &yP, &w, &h);
+  display.drawRoundRect(xLabelDay, yLabelDay - h / 2, dayBoxW, dayBoxH, dayBoxR, TEXTCOLOR);
+  display.fillRect(xLabelDay + 8, yLabelDay - h / 2 , w + 8, 2, BGCOLOR);
+
+  display.setCursor(xLabelDay + 11, yLabelDay);
+  display.setFont(&FreeSansBold7pt7b);
+  display.print(weekDay);
+
+  //startY -= yTab;
+
+  yLabelDay += lineTab;
+
+  int iconTab;
+
+  //display.setCursor(xRight, yLabelDay);
+  //display.setFont(&slateWeather14pt7b);
+  //display.print(dayWeatherIcon);
+  //display.getTextBounds(dayWeatherIcon, 0, 0, &xP, &yP, &w, &h);
+  //iconTab = w;
+  iconTab = 0;
+
+  display.setFont(&FreeSansBold9pt7b);
+
+  char tempHi[4];
+  itoa(hi, tempHi, 10);
+  display.getTextBounds(tempHi, 0, 0, &xP, &yP, &w, &h);
+
+  display.setCursor(xRight + iconTab, yLabelDay);
+  display.print(tempHi);
+  display.fillCircle(xRight + iconTab + w + 8, yLabelDay  - (h * .8), 4, TEXTCOLOR);
+  display.fillCircle(xRight + iconTab + w + 8, yLabelDay - (h * .8), 1, BGCOLOR);
+
+  int xRightLow = xRight + iconTab + w + 8 + 4;
+
+  //startY += lineTab;
+
+  display.setCursor(xRightLow, yLabelDay);
+  display.setFont(&FreeSansBold9pt7b);
+  display.print(" | ");
+  display.getTextBounds(" | ", 0, 0, &xP, &yP, &w, &h);
+  int spacerW = w;
+
+
+  char tempLo[4];
+  itoa(lo, tempLo, 10);
+  display.getTextBounds(tempLo, 0, 0, &xP, &yP, &w, &h);
+
+  //display.setCursor(xRightLow + iconTab, yLabelDay);
+  display.print(tempLo);
+  display.fillCircle(xRightLow + spacerW + w + 8 + 4, yLabelDay  - (h * .8), 4, TEXTCOLOR);
+  display.fillCircle(xRightLow + spacerW + w + 8 + 4, yLabelDay - (h * .8), 1, BGCOLOR);
+
+  //startY += lineTab;
+  yLabelDay += lineTab;
+
+  display.setFont(&slateWeather14pt7b);
+  display.getTextBounds("u", 0, 0, &xP, &yP, &w, &h);
+
+  display.setCursor(xRight, yLabelDay + h / 4);
+  display.setFont(&slateWeather14pt7b);
+  display.print("u");
+  display.setCursor(xRight + w, yLabelDay);
+  display.setFont(&FreeSansBold9pt7b);
+  display.print(" ");
+  display.print(sr);
+
+  if (twh > 0) {
+    display.setFont(&FreeSansBold7pt7b);
+    display.print(sram);
+  }
+
+  //startY += lineTab;
+  yLabelDay += lineTab;
+
+  display.setCursor(xRight, yLabelDay + h / 4);
+  display.setFont(&slateWeather14pt7b);
+  display.print("U");
+  display.setCursor(xRight + w, yLabelDay);
+  display.setFont(&FreeSansBold9pt7b);
+  display.print(" ");
+  display.print(ss);
+  if (twh > 0) {
+    display.setFont(&FreeSansBold7pt7b);
+    display.print(ssam);
+  }
+
+}
+
+void renderDeviceStatus() {
 
   int tab = 0;
   int hTab = 0;
@@ -160,29 +406,44 @@ void renderPowerStatus() {
   batteryManagement();
 
   display.setFont(&slateIcons14pt7b);
-  display.getTextBounds("L", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(battlowG, 0, 0, &xP, &yP, &w, &h);
 
   display.setCursor(displayMarginW / 2, displayMarginH + h);
 
   if (low_battery && !usb_plugged_in) {
-    display.print("L");
+    display.print(battlowG);
     tab = w + 5;
     hTab = h / 4;
   } else if (!battery_charged && usb_plugged_in) {
-    display.print("C");
+    display.print(battchargeG );
     tab = w + 5;
     hTab = h / 4;
   } else if (battery_charged && usb_plugged_in) {
-    display.print("H");
+    display.print(battfullG);
     tab = w + 5;
     hTab = h / 4;
   }
 
+
   if (versionUpdateAvailable) {
     display.setFont(&slateIcons9pt7b);
-    display.getTextBounds("@", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(downloadG, 0, 0, &xP, &yP, &w, &h);
     display.setCursor(tab + displayMarginW / 2, displayMarginH + h - hTab);
-    display.print("@");
+    display.print(downloadG);
+    tab += w + 5;
+  }
+
+  if (wifiAttempting || wifiFailed) {
+    display.setFont(&slateIcons9pt7b);
+    display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
+    display.setCursor(tab + displayMarginW / 2, displayMarginH/3 + h);
+    if (wifiAttempting) {
+      display.setFont(&slateIcons9pt7b);
+      display.print(wifiG);
+    } else {
+      display.print(resetwifiG);
+    }
+   tab += w + 5;
   }
 
 }
@@ -294,33 +555,33 @@ void renderPomodoroMenu() {
   if (pomodoroInitiated) {
 
     if (!pomodoroPaused) {
-      display.getTextBounds("\\", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(pauseG, 0, 0, &xP, &yP, &w, &h);
       display.setCursor(BUTTON_C_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-      display.print("\\");//Pause
+      display.print(pauseG);//Pause
     } else {
-      display.getTextBounds("S", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(playG, 0, 0, &xP, &yP, &w, &h);
       display.setCursor(BUTTON_C_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-      display.print("S"); //Play
+      display.print(playG); //Play
     }
 
-    display.getTextBounds(">", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(forwardG, 0, 0, &xP, &yP, &w, &h);
     display.setCursor(BUTTON_D_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-    display.print(">");
+    display.print(forwardG);
 
-    display.getTextBounds("k", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(cancelG, 0, 0, &xP, &yP, &w, &h);
     display.setCursor(BUTTON_E_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-    display.print("k");
+    display.print(cancelG);
   } else {
 
-    display.getTextBounds("S", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(playG, 0, 0, &xP, &yP, &w, &h);
     display.setCursor(BUTTON_C_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-    display.print("S"); //Play
+    display.print(playG); //Play
 
   }
 
-  display.getTextBounds("~", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(menuG, 0, 0, &xP, &yP, &w, &h);
   display.setCursor(BUTTON_F_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y - textH);
-  display.print("~");
+  display.print(menuG);
 
 }
 
@@ -337,9 +598,11 @@ void renderWeatherWidget(int startY) {
   display.print(currWeatherIcon);
 
   char currWeatherChar[4];
-  itoa(currWeather, currWeatherChar, 10);
+  //itoa(currWeather, currWeatherChar, 10);
+  itoa(currentTemp[unitSetting], currWeatherChar, 10);
 
   display.setFont(&FreeSansBold18pt7b);
+  //display.setFont(&FreeSansBold14pt7b);
   display.getTextBounds(currWeatherChar, 0, 0, &xP, &yP, &w, &h);
 
   int tempY = iconY + h + 9;
@@ -361,18 +624,18 @@ void renderWeatherWidget(int startY) {
 int renderAlarmWidget(int startY) {
 
   display.setFont(&slateIcons9pt7b);
-  display.getTextBounds("a", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(alarmG, 0, 0, &xP, &yP, &w, &h);
 
   int alarmY = startY + displayMarginH * 1.25 + h;
   display.setCursor(TIMING_X, alarmY);
 
   if (!alarmActive) {
-    display.print("a");
+    display.print(alarmG);
   } else {
     showMenu = false; //do not show menu
     resetMenuButtons(); //clear out all menu buttons if the device was awake
 
-    display.print("b");
+    display.print(bellG);
     if (!timerActive) {
       handleBuzzer();
     }
@@ -383,25 +646,42 @@ int renderAlarmWidget(int startY) {
   int alarm_min = getAlarmMin(); //rtc.getAlarmMinutes();
   boolean alarm_pm = false;
 
-  if (alarm_hr > 12) {
-    alarm_pm = true;
-    alarm_hr = alarm_hr - 12;
-  }
+  boolean twentyFourHourVal = isTwentyFourHour();
 
-  if (alarm_hr == 0) {
-    alarm_hr = 12;
+  if (!twentyFourHourVal) {
+
+    if (alarm_hr > 12) {
+      alarm_pm = true;
+      alarm_hr = alarm_hr - 12;
+    }
+
+    if (alarm_hr == 0) {
+      alarm_hr = 12;
+    }
+
   }
 
   char alm[6];
-  sprintf(alm, " %d:%02d", alarm_hr, alarm_min);
+
+  if (alarm_hr < 10 && twentyFourHourVal) {
+    sprintf(alm, " 0%d:%02d", alarm_hr, alarm_min);
+  } else {
+    sprintf(alm, " %d:%02d", alarm_hr, alarm_min);
+  }
+
   display.print(alm);
 
-  display.setFont(&FreeSansBold9pt7b);
-  if (alarm_pm) {
-    display.print(" PM");
-  } else {
-    display.print(" AM");
+  if (!twentyFourHourVal) {
+
+    display.setFont(&FreeSansBold9pt7b);
+    if (alarm_pm) {
+      display.print(" PM");
+    } else {
+      display.print(" AM");
+    }
+
   }
+
   return alarmY - displayMarginH * .5;
 }
 
@@ -469,13 +749,13 @@ void handleTimer() {
 void renderTimerWidget(int startY) {
 
   display.setFont(&slateIcons9pt7b);
-  display.getTextBounds("a", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(alarmG, 0, 0, &xP, &yP, &w, &h);
 
   int timerY = startY + displayMarginH * 1.25 + h;
   display.setCursor(TIMING_X, timerY);
 
   if (timerActive) {
-    display.print("b");
+    display.print(bellG);
     display.setFont(&FreeSansBold12pt7b);
     display.print(" 00:00:00");
 
@@ -497,21 +777,21 @@ void renderTimerWidget(int startY) {
 
     if (pomodoroEnabled) {
       if (pomodoroSaved && pomodoroPaused) {
-        display.print("\\");
+        display.print(pauseG);
       } else {
 
         if (pomodoroItem % 2 == 0) { //if even, then break
           if (pomodoroItem == 8) { //long break
-            display.print("q");
+            display.print(spoonknifeG);
           } else { //short break
-            display.print("Z");
+            display.print(mugG);
           }
         } else { //if odd, then work
-          display.print("e");
+          display.print(clipboardG);
         }
       }
     } else {
-      display.print("g");
+      display.print(hourglassG);
     }
 
     display.setFont(&FreeSansBold12pt7b);
@@ -536,14 +816,14 @@ void renderTimerWidget(int startY) {
 void pomodoroTracker(int startY) {
 
   display.setFont(&slateIcons14pt7b);
-  display.getTextBounds("Q", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(tomatoG, 0, 0, &xP, &yP, &w, &h);
 
   int iconY = startY + h + 20;
   int iconX = displayMarginW;
   int iconW = w;
   int iconH = h;
   display.setCursor(iconX, iconY);
-  display.print("Q");
+  display.print(tomatoG);
 
   display.setFont(&FreeSansBold9pt7b);
   display.getTextBounds("POMODORO", 0, 0, &xP, &yP, &w, &h);
@@ -555,7 +835,7 @@ void pomodoroTracker(int startY) {
   startY = startY + h * 1.5;
 
   display.setCursor(startX, startY);
-  if ((pomodoroItem % 2 == 0) && (pomodoroItem !=0)) { //if even, then break
+  if ((pomodoroItem % 2 == 0) && (pomodoroItem != 0)) { //if even, then break
     display.print("BREAK #");
   } else { //if odd, then work
     display.print("TASK #");
@@ -563,7 +843,7 @@ void pomodoroTracker(int startY) {
 
   int taskItem = (pomodoroItem + 1) / 2;
 
-  if (taskItem == 0){
+  if (taskItem == 0) {
     taskItem = 1;
   }
   display.print(taskItem);
@@ -604,7 +884,15 @@ void renderMainDisplay(bool inverse = false) {
     Serial.println("Alarm active - manual override!!!");
   }
 
-  rtc.set12Hour();
+  //rtc.set12Hour();
+
+  boolean twentyFourHourVal = isTwentyFourHour();
+
+  if (!twentyFourHourVal) {
+    rtc.set12Hour();
+  } else {
+    rtc.set24Hour();
+  }
 
   while (!rtc.updateTime());
 
@@ -648,23 +936,43 @@ void renderMainDisplay(bool inverse = false) {
     dt_i = timeinfo.tm_mday;
     wday_i = timeinfo.tm_wday;
 
-    pm = false;
-    if (hr_i > 11) {
+    if (!twentyFourHourVal) {
+      pm = false;
+      if (hr_i > 11) {
+        pm = true;
+        if (hr_i > 12) {
+          hr_i = hr_i - 12;
+        }
+      }
+    }
+
+    /*pm = false;
+      if (hr_i > 11) {
       pm = true;
       if (hr_i > 12) {
         hr_i = hr_i - 12;
       }
-    }
+      }*/
 
   }
 
   char hr[3];
-  if (hr_i == 0) {
-    hr_i = 12;
+
+  if (!twentyFourHourVal) {
+    if (hr_i == 0) {
+      hr_i = 12;
+    }
     sprintf(hr, "%d", hr_i);
+
   } else {
-    sprintf(hr, "%d", hr_i);
+    if (hr_i < 10) {
+      sprintf(hr, "0%d", hr_i);
+    } else {
+      sprintf(hr, "%d", hr_i);
+    }
   }
+
+
 
   char mi[4];
   sprintf(mi, ":%02d", m_i);
@@ -704,7 +1012,7 @@ void renderMainDisplay(bool inverse = false) {
   display.print(mi);
 
   display.getTextBounds(hr, 0, 0, &xP, &yP, &w, &h);
-  display.setCursor(colonX - (w + colonW) , timeY);
+  display.setCursor(colonX - (w + colonW / 2) , timeY);
   display.print(hr);
 
   if (showWeather) { //& !isAlarmActive()
@@ -713,7 +1021,7 @@ void renderMainDisplay(bool inverse = false) {
 
   int timerY = timeY;
 
-  if (pomodoroEnabled|| showPomodoroMenu) {
+  if (pomodoroEnabled || showPomodoroMenu) {
     pomodoroTracker(timeY);
   }
 
@@ -725,7 +1033,7 @@ void renderMainDisplay(bool inverse = false) {
     renderTimerWidget(timerY);
   }
 
-  renderPowerStatus();
+  renderDeviceStatus();
 
   if (showMenu) {
     if (showPomodoroMenu) {
@@ -735,9 +1043,13 @@ void renderMainDisplay(bool inverse = false) {
     }
   } else {
     if (!alarmEnabled && !timerEnabled) {
-      if (showQuote) {
+      if (showQuote && tempScreenSetting == QUOTESCREEN) { //re-add after coding/testing
         renderQuote(timerY);
       }
+      if (showWeather && tempScreenSetting == WEATHERSCREEN) {
+        renderCurrentWeather(timerY, wday_i);
+      }
+
     }
   }
 
@@ -753,8 +1065,8 @@ void keepMenu() {
 void exitScreensRoutine(boolean menuKeep = true) {
   timeoutCounter = millis() + MILLS_BEFORE_DEEP_SLEEP_QUICK;
   delay(DEBOUNCE); //adding a second debounce when we go back to the main screen
-  if (menuKeep){
+  if (menuKeep) {
     keepMenu();
   }
-  
+
 }

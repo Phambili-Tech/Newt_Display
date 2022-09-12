@@ -84,7 +84,7 @@ void renderTodoDisplay(bool syncInProgress = false) {
           y = y + h;
           display.setCursor(x, y);
           display.setFont(&slateIcons9pt7b);
-          display.print("U");
+          display.print(checkboxuncheckedG);
 
           if (startCounter == selectedTodo) {
             display.setFont(&FreeSansBold9pt7b);
@@ -112,9 +112,9 @@ void renderTodoDisplay(bool syncInProgress = false) {
 
   if (syncInProgress) { //maybe this needs to be in the upper right....
     display.setFont(&slateIcons9pt7b);
-    display.getTextBounds("R", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(refreshG, 0, 0, &xP, &yP, &w, &h);
     display.setCursor(displayMarginW, BUTTON_CDEF_PIN_Y - h);
-    display.print("R");
+    display.print(refreshG);
     display.setFont(&FreeSansBold9pt7b);
     display.print(" Synicng TODO List");
 
@@ -131,7 +131,7 @@ void renderTodoDisplay(bool syncInProgress = false) {
 
     //display.setFont(&slateIcons14pt7b);
     display.setFont(&FreeSansBold9pt7b);
-    display.getTextBounds("t", 0, 0, &xP, &yP, &w, &h);
+    display.getTextBounds(stopwatchG, 0, 0, &xP, &yP, &w, &h);
 
     if (selectedTodo > 0) {
       display.setCursor(BUTTON_C_PIN_X - (w / 2), BUTTON_CDEF_PIN_Y);

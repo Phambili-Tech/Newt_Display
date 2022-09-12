@@ -68,12 +68,12 @@ void renderSetTimerDisplay() {
   display.setTextColor(TEXTCOLOR);
 
   display.setFont(&slateIcons14pt7b);
-  display.getTextBounds("t", 0, 0, &xP, &yP, &w, &h);
+  display.getTextBounds(stopwatchG, 0, 0, &xP, &yP, &w, &h);
   display.setCursor(BUTTON_AB_PIN_X - h / 2, BUTTON_A_PIN_Y);
-  display.print("u");
+  display.print(uptoggleG);
 
   display.setCursor(BUTTON_AB_PIN_X - h / 2, BUTTON_B_PIN_Y);
-  display.print("d");
+  display.print(downtoggleG);
 
   display.setTextSize(1);
   display.setFont(&FreeSansBold9pt7b);

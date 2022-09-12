@@ -21,20 +21,27 @@ void renderSetAlarmDisplay() {
   display.setCursor(x, displayMarginH + h);
   display.print("SET ALARM");
 
+  boolean twentyFourHourVal = isTwentyFourHour();
+
   if (!startAlarmSetting) {
+
 
     //while (!rtc.updateTime());
 
     alarmSettingH = getAlarmHr(); //rtc.getAlarmHours();
     alarmSettingM = getAlarmMin(); //rtc.getAlarmMinutes();
 
-    if (alarmSettingH > 12) {
-      alarmSettingPM = true;
-      alarmSettingH = alarmSettingH - 12;
-    }
+    if (!twentyFourHourVal) {
 
-    if (alarmSettingH == 0) {
-      alarmSettingH = 12;
+      if (alarmSettingH > 12) {
+        alarmSettingPM = true;
+        alarmSettingH = alarmSettingH - 12;
+      }
+
+      if (alarmSettingH == 0) {
+        alarmSettingH = 12;
+      }
+
     }
 
     alarmSettingPart = 0;
@@ -42,7 +49,13 @@ void renderSetAlarmDisplay() {
   }
 
   char hr[3];
-  sprintf(hr, "%u", alarmSettingH);
+
+  if (twentyFourHourVal && alarmSettingH < 10) {
+    sprintf(hr, "0%u", alarmSettingH);
+  } else {
+    sprintf(hr, "%u", alarmSettingH);
+  }
+
   char mi[4];
   sprintf(mi, ":%02u", alarmSettingM);
 
@@ -51,10 +64,10 @@ void renderSetAlarmDisplay() {
   display.setFont(&slateIcons14pt7b);
   display.getTextBounds("t", 0, 0, &xP, &yP, &w, &h);
   display.setCursor(BUTTON_AB_PIN_X - h / 2, BUTTON_A_PIN_Y);
-  display.print("u");
+  display.print(uptoggleG);
 
   display.setCursor(BUTTON_AB_PIN_X - h / 2, BUTTON_B_PIN_Y);
-  display.print("d");
+  display.print(downtoggleG);
 
   display.setTextSize(1);
   display.setFont(&FreeSansBold9pt7b);
@@ -91,15 +104,18 @@ void renderSetAlarmDisplay() {
   display.setCursor(colonX, timeY);
   display.print(mi);
 
-  if (alarmSettingPart == 2) {
-    display.setFont(&FreeSansBold24pt7b);
-  } else {
-    display.setFont(&FreeSansBold12pt7b);
-  }
-  if (alarmSettingPM) {
-    display.print("PM");
-  } else {
-    display.print("AM");
+  if (!twentyFourHourVal) {
+
+    if (alarmSettingPart == 2) {
+      display.setFont(&FreeSansBold24pt7b);
+    } else {
+      display.setFont(&FreeSansBold12pt7b);
+    }
+    if (alarmSettingPM) {
+      display.print("PM");
+    } else {
+      display.print("AM");
+    }
   }
 
   if (alarmSettingPart == 0) {
@@ -124,7 +140,7 @@ void renderSetAlarmDisplay() {
       }
       display.setCursor(colonX - (w + colonW) , timeY);
       display.print(hr);
-      delay(150);
+      delay(100);
       display.refresh();
     }
     alarmSettingFirstLoad = false;
@@ -134,20 +150,33 @@ void renderSetAlarmDisplay() {
 
 void incrementAlarmDisplay(int button) {
 
+  int alarmHMax;
+  int alarmHMin;
+
+  boolean twentyFourHourVal = isTwentyFourHour();
+
+  if (twentyFourHourVal) {
+    alarmHMax = 23;
+    alarmHMin = 0;
+  } else {
+    alarmHMax = 12;
+    alarmHMin = 1;
+  }
+
   if (alarmSettingPart == alarmSettingPartH) {
     switch (button)
     {
       case BUTTON_A :
-        if (alarmSettingH == 12) {
-          alarmSettingH = 1;
+        if (alarmSettingH == alarmHMax) {
+          alarmSettingH = alarmHMin;
         } else {
           alarmSettingH++;
         }
         renderSetAlarmDisplay();
         break;
       case BUTTON_B :
-        if (alarmSettingH == 1) {
-          alarmSettingH = 12;
+        if (alarmSettingH == alarmHMin) {
+          alarmSettingH = alarmHMax;
         } else {
           alarmSettingH--;
         }
@@ -191,8 +220,16 @@ void incrementAlarmDisplay(int button) {
         renderSetAlarmDisplay();
         break;
       case BUTTON_C :
-        alarmSettingPart = alarmSettingPartPM;
-        renderSetAlarmDisplay();
+
+        if (twentyFourHourVal) {
+          startAlarmSetting = false;
+          setRTCAlarm(alarmSettingH, alarmSettingM, alarmSettingPM);
+          exitScreensRoutine();
+        } else {
+          alarmSettingPart = alarmSettingPartPM;
+          renderSetAlarmDisplay();
+        }
+
         break;
       case BUTTON_D :
         alarmSettingPart = alarmSettingPartH;

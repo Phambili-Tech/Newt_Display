@@ -1,51 +1,53 @@
 /*
-NEWT 
-By Phambili
-https://phambili.tech
-Developed by Darian Johnson
+  NEWT
+  By Phambili
+  https://phambili.tech
+  Developed by Darian Johnson
 
-This is the core library for the Newt, by Phambili. The Newt is an
-open-source device that operates as a low-power, internet connected
-device.
+  This is the core library for the Newt, by Phambili. The Newt is an
+  open-source device that operates as a low-power, internet connected
+  device.
 
-Newt was built using a number of open source libraries, including:
-- Adafruit_GFX, Adafruit_Sharp_Memory (Adafruit)
-- RV 3028 library (Constantin Koch)
-- Font Conversion (Coby Graphics)
-- WiFi Manager (Tzapu)
-- MQTT library (Joel Gahwiler)
+  Newt was built using a number of open source libraries, including:
+  - Adafruit_GFX, Adafruit_Sharp_Memory (Adafruit)
+  - RV 3028 library (Constantin Koch)
+  - Font Conversion (Coby Graphics)
+  - WiFi Manager (Tzapu)
+  - MQTT library (Joel Gahwiler)
 
-Phambili has spent considerable time and effort building Newt and this library.
-Please support NEWT by considering purchasing a NEWT.
-Copyright (c) 2022 Phambili. All rights reserved.
+  Phambili has spent considerable time and effort building Newt and this library.
+  Please support NEWT by considering purchasing a NEWT.
+  Copyright (c) 2022 Phambili. All rights reserved.
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-- Redistributions of source code must retain the above copyright notice,
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+  - Redistributions of source code must retain the above copyright notice,
   this list of conditions and the following disclaimer.
-- Redistributions in binary form must reproduce the above copyright notice,
+  - Redistributions in binary form must reproduce the above copyright notice,
   this list of conditions and the following disclaimer in the documentation
   and/or other materials provided with the distribution.
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
- */
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+*/
 
 
 #include "FS.h"
 #include "SPIFFS.h"
 //#include "USB.h"
 #define SWVERSION_MAJOR 1
-#define SWVERSION_MINOR 0
-#define SWVERSION_PATCH 1
+#define SWVERSION_MINOR 1
+#define SWVERSION_PATCH 0
+#define RC true
+#define SWVERSION_RC 1
 
 /* You only need to format SPIFFS the first time you run a
    test or else use the SPIFFS plugin to create a partition
@@ -74,12 +76,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "esp_log.h"
 
 //===================FONT AND DISPLAY MANAGEMENT==============================
+#include <Newt_Fonts/Newt_Font_Lookup.h>
 #include <Newt_Fonts/FreeSansBold60pt7b.h>
 #include <Newt_Fonts/FreeSansBold50pt7b.h>
 #include <Newt_Fonts/FreeSansBold24pt7b.h>
 #include <Newt_Fonts/FreeSansBold18pt7b.h>
+#include <Newt_Fonts/FreeSansBold14pt7b.h>
 #include <Newt_Fonts/FreeSansBold12pt7b.h>
 #include <Newt_Fonts/FreeSansBold9pt7b.h>
+#include <Newt_Fonts/FreeSansBold7pt7b.h>
 
 #include <Newt_Fonts/FreeSansBoldOblique12pt7b.h>
 
@@ -89,30 +94,47 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <Newt_Fonts/FreeSans12pt7b.h>
 #include <Newt_Fonts/FreeSans9pt7b.h>
 
+#include <Newt_Fonts/slateWeather14pt7b.h>
+#include <Newt_Fonts/slateWeather22pt7b.h>
 #include <Newt_Fonts/slateWeather30pt7b.h>
+
 #include <Newt_Fonts/slateIcons30pt7b.h>
 #include <Newt_Fonts/slateIcons14pt7b.h>
 #include <Newt_Fonts/slateIcons9pt7b.h>
+#include <Newt_Fonts/slateIcons6pt7b.h>
 
 #include <Newt_Fonts/introIcons50pt7b.h>
 
 #define displayOrientation 2
-#define TEXTCOLOR 0
-#define BGCOLOR 1
+RTC_DATA_ATTR int TEXTCOLOR = 0;
+RTC_DATA_ATTR int BGCOLOR = 1;
 int displayWidth;
 int displayHeight;
 int displayRefreshHeight = 180;
-int displayMarginW = 20;
-int displayMarginH = 10;
+int displayMarginW = 16;
+int displayMarginH = 8;
 int16_t xP, yP;
 uint16_t w, h;
 
-//===================WIFI MANAGEMENT========================================
+int autoDarkH = 23;
+int autoLightH = 5;
+int refreshScreenM = 3;
+
+//===================WIFI and MQTT MANAGEMENT========================================
 #define INIT_HOST "newt.darianmakes.com"
 #define INIT_PATH "/Newt-Functions"
 #define UPGRADE_HOST "phambili-pub.s3.amazonaws.com"
 #define UPGRADE_PATH "/Newt.ino_latest.bin"
 #define UPGRADE_PORT 80
+
+volatile unsigned long wifiTimeoutCounter;
+#define MILLS_BEFORE_WIFI_TIMEOUT 15000
+RTC_DATA_ATTR boolean wifiFailed = false;
+boolean wifiAttempting = false;
+RTC_DATA_ATTR int refreshDataCount = 0;
+RTC_DATA_ATTR boolean minorRefresh = false;
+
+#define REFRESH_WEATHER_COUNT 30
 
 boolean shouldConnect = false;
 boolean initialConnection = false;
@@ -124,23 +146,33 @@ boolean requestTodos = false;
 boolean updatedTodos = false;
 boolean requestAirQuality = false;
 boolean requestOblique = false;
+boolean requestRiddle = false;
+boolean requestWeatherForecasts = false;
 
-byte sleepCheckWeather = 0;
+byte sleepCheckCWeather = 0;
 byte sleepCheckQuote = 1;
-byte sleepCheckAQI = 2;
-byte sleepCheckOblique = 3;
+byte sleepCheckOblique = 2;
+byte sleepCheckDWeather = 3;
+byte sleepCheckHWeather = 4;
+byte sleepCheckAQI = 5;
+byte sleepCheckRiddle = 6;
 
-byte readyToSleep[] = { 0, 0, 0, 0 };
+byte readyToSleepCount = 7;
+byte readyToSleep[] = { 0, 0, 0, 0, 0, 0, 0};
 
-const byte numOfTopics = 7;
-char topics[numOfTopics][20] = {
+const byte numOfTopics = 11;
+char topics[numOfTopics][25] = {
   "deviceDetails",
   "forecast",
   "current",
   "quote",
   "todo",
   "airQuality",
-  "obliques"
+  "obliques",
+  "currentWeather",
+  "dailyWeather",
+  "hourlyWeather",
+  "riddle"
 };
 
 RTC_DATA_ATTR char uniqId[40];
@@ -159,33 +191,78 @@ RTC_DATA_ATTR char mqtt_token[60];
 RTC_DATA_ATTR char mqtt_user[60];
 RTC_DATA_ATTR char mqtt_pub_topic[60];
 
+RTC_DATA_ATTR char savedSSID[129];
+RTC_DATA_ATTR char savedIP[40];
+
 RTC_DATA_ATTR boolean versionUpdateAvailable = false;
 
 //===================EEPROM AND PREFERENCES MANAGEMENT========================================
 #define EEPROM_SIZE 510
 #define WIFI_ENABLED_ADDR 0
 #define TESTER_SUCCESSFUL 1
+#define TWENTY_FOUR_HOUR_FORMAT_ADDR 2 //if value is 1 then 24 hour
+#define MEASURE_ADDR 3
+#define DARKMODE_ADDR 4
+#define DEFAULTSCREEN_ADDR 5
+#define DEFAULT_MEASURE_ADDR 6
+
+#define IMPERIALMEASURE 2
+#define METRICMEASURE 1
+#define AUTOMEASURE 0
+
+#define QUOTESCREEN 1
+#define WEATHERSCREEN 2
+#define AUTOSCREEN 0
+
+#define AUTOMODE 1
+#define DARKMODE 2
+#define LIGHTMODE 0
 
 //===================BATTERY MANAGEMENT========================================
 boolean usb_plugged_in = false;
 boolean low_battery = false;
 boolean battery_charged = false;
 
-//===================SCREEN MANAGEMENT========================================
+//===================SCREEN MANAGEMENT and SAVED VALUES=======================+
 volatile unsigned long timeoutCounter;
 byte currentDisplay = 0;
 
+RTC_DATA_ATTR byte unitSetting;
+RTC_DATA_ATTR byte savedScreenSetting;
+RTC_DATA_ATTR byte tempScreenSetting = 1;
+
 RTC_DATA_ATTR boolean showWeather = false;
-RTC_DATA_ATTR int currWeather;
+RTC_DATA_ATTR boolean showDailyWeather = false;
+//RTC_DATA_ATTR int currWeather;
+RTC_DATA_ATTR int currentTemp[] = {0, 0};
+RTC_DATA_ATTR int currentFeelsTemp[] = {0, 0};
 RTC_DATA_ATTR char currWeatherIcon[2];
-RTC_DATA_ATTR uint32_t nextWeatherEpoch;
+RTC_DATA_ATTR int currHumidity;
+RTC_DATA_ATTR int currAQ = -1;
+RTC_DATA_ATTR int currUV = -1;
+RTC_DATA_ATTR char todayWDay[5];
+RTC_DATA_ATTR char tomWDay[5];
+RTC_DATA_ATTR int currDayNo;
+RTC_DATA_ATTR char dailyWeatherIcon[2][2];
+RTC_DATA_ATTR char todaySunrise[3][6];
+RTC_DATA_ATTR char todaySunset[3][6];
+RTC_DATA_ATTR int todayHiTemp[] = {0, 0};
+RTC_DATA_ATTR int todayLoTemp[] = {0, 0};
+RTC_DATA_ATTR char tomSunrise[3][6];
+RTC_DATA_ATTR char tomSunset[3][6];
+RTC_DATA_ATTR int tomHiTemp[] = {0, 0};
+RTC_DATA_ATTR int tomLoTemp[] = {0, 0};
 
 RTC_DATA_ATTR boolean showQuote = false;
 RTC_DATA_ATTR char currQuote[200];
 RTC_DATA_ATTR char currAuthor[120];
 
 RTC_DATA_ATTR char currOblique[1200];
-RTC_DATA_ATTR char dummyOblique[1200] = "dummyVal";
+
+RTC_DATA_ATTR char dailyRiddle[300];
+RTC_DATA_ATTR char dailyRiddleAnswer[300];
+RTC_DATA_ATTR char dailyRiddleAttr[100];
+RTC_DATA_ATTR int riddleCategoryNo;
 
 RTC_DATA_ATTR boolean alarmEnabled = false;
 RTC_DATA_ATTR boolean alarmActive = false;
@@ -212,8 +289,8 @@ RTC_DATA_ATTR boolean outputTone = false;
 #define BUZZER_CHANNEL 0
 #define BUZZER_RESOLUTION 8
 
-#define MILLS_BEFORE_DEEP_SLEEP 60000
-#define MILLS_BEFORE_DEEP_SLEEP_SHORT 20000
+#define MILLS_BEFORE_DEEP_SLEEP 30000
+#define MILLS_BEFORE_DEEP_SLEEP_SHORT 10000
 #define MILLS_BEFORE_DEEP_SLEEP_QUICK 3000
 #define MILLS_BEFORE_DEEP_SLEEP_TIMER 5000
 #define MILLS_BEFORE_DEEP_SLEEP_SETUP 300000  //5 mins
@@ -221,6 +298,7 @@ RTC_DATA_ATTR boolean outputTone = false;
 //locations for the buttons in relation to the display screen
 #define BUTTON_A_PIN_Y 155
 #define BUTTON_B_PIN_Y 225
+#define BUTTON_AB_PIN_Y 190
 #define BUTTON_AB_PIN_X 15
 #define BUTTON_C_PIN_X 50
 #define BUTTON_D_PIN_X 150
@@ -319,15 +397,17 @@ static const touch_pad_t button[TOUCH_BUTTON_NUM] = {
 #define USB_BITMASK 0x20000  //2^17
 
 
-//-----------------------OTHER FACTORS------------------------------------
+//===================OTHER FACTORS========================================
 RTC_DATA_ATTR boolean initialBoot = true;
 RTC_DATA_ATTR boolean initialRTC = true;
-RTC_DATA_ATTR int refreshDataCount = 0;
-RTC_DATA_ATTR boolean minorRefresh = false;
-RTC_DATA_ATTR int testBoot = 1;
-#define REFRESH_WEATHER_COUNT 30
+
 
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
+
+//===================ATTRIBUTION========================================
+int attributionItems = 7;
+char entities[7][20] = { "Adafruit", "Constantin Koch", "Rop Gonggrijp", "Coby Graphics", "Tzapu", "Joel Gahwiler", "Apple Weather" };
+char contributions[7][60] = { "GFX & Sharp Display libraries", "RV 3028 library", "Font Conversion", "Newt icon", "WiFi Manager", "MQTT library", "Weather API" };
 
 //===================INITALIZATION========================================
 
@@ -338,7 +418,7 @@ WiFiClient client_upgrade;
 MQTTClient client(2000);
 Adafruit_SharpMem display(SHARP_SCK, SHARP_MOSI, SHARP_SS, 400, 240);
 
-#include "timeFunctions.h"
+#include "globalFunctions.h"
 #include "mainDisplay.h"
 #include "wifiFunctions.h"
 #include "alarmDisplay.h"
@@ -347,7 +427,7 @@ Adafruit_SharpMem display(SHARP_SCK, SHARP_MOSI, SHARP_SS, 400, 240);
 #include "habitDisplay.h"
 #include "todoDisplay.h"
 #include "settingsDisplay.h"
-#include "obliqueDisplay.h"
+#include "textDisplay.h"
 #include "buttonFunctions.h"
 
 
@@ -364,25 +444,43 @@ void refreshCheck(boolean ignore = false) {
 
   if (refreshDataCount > REFRESH_WEATHER_COUNT) {
     refreshDataCount = 0;
+    wifiAttempting = true;
     renderMainDisplay();  //render the display to display the correct time before getting new information
     if (minorRefresh) {
-      requestCurrentWeather = true;
+      requestWeatherForecasts = true;
       minorRefresh = false;
     } else {
-      requestWeatherForecast = true;
+      requestWeatherForecasts  = true;
       requestAirQuality = true;
-      requestOblique = true;
+      //requestOblique = true;
+      //requestRiddle = true;
       requestQuote = true;
       minorRefresh = true;
-    }
 
+      while (!rtc.updateTime());
+
+      rtc.set24Hour(); //change to 24 hour time
+      if (rtc.getHours() == 2) { //refresh Riddle and Oblique every day between 2-3AM
+        requestOblique = true;
+        requestRiddle = true;
+      }
+
+      if (!isTwentyFourHour) { //switch back to 12 hour time if needed
+        rtc.set12Hour();
+      }
+
+
+    }
     shouldConnect = true;
+    wifiTimeoutCounter = millis() + MILLS_BEFORE_WIFI_TIMEOUT;
     timeoutCounter = millis() + MILLS_BEFORE_DEEP_SLEEP;
 
   } else {
     refreshDataCount++;
     timeoutCounter = 0;
   }
+
+  checkTempScreenSetting();
 
   Serial.print("Refresh Count: ");
   Serial.println(refreshDataCount);
@@ -482,10 +580,6 @@ void handleWakeupReason() {
 
 void introScreen(int message = 0) {
 
-  int items = 7;
-  char entities[7][20] = { "Adafruit", "Constantin Koch", "Rop Gonggrijp", "Coby Graphics", "Tzapu", "Joel Gahwiler", "Open Weather" };
-  char contributions[7][60] = { "GFX & Sharp Display libraries", "RV 3028 library", "Font Conversion", "Newt icon", "WiFi Manager", "MQTT library", "Weather API" };
-
   int startY = displayMarginH * 2;
   int startX = displayMarginW;
   int spacer = 10;
@@ -536,7 +630,7 @@ void introScreen(int message = 0) {
       display.setFont(&FreeSansBold12pt7b);
       display.print("Attribution:");
 
-      for (int i = 0; i < items; i++) {
+      for (int i = 0; i < attributionItems; i++) {
         startY = startY + 20;
         display.setFont(&FreeSansBold9pt7b);
         display.setCursor(startX, startY);
@@ -552,10 +646,10 @@ void introScreen(int message = 0) {
     case 1:  //About to attempt Wifi connection
       delay(500);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("i", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
-      display.print("i");
+      display.print(wifiG);
       display.setFont(&FreeSansBold9pt7b);
       display.print(" Connecting to Wifi");
       display.refresh();
@@ -563,10 +657,10 @@ void introScreen(int message = 0) {
     case 2:  //Print initializing device (connecting to init function)
       delay(500);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("i", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
-      display.print("s");
+      display.print(cogG);
       display.setFont(&FreeSansBold9pt7b);
       display.print(" Initializing Device");
       display.refresh();
@@ -574,10 +668,10 @@ void introScreen(int message = 0) {
     case 3:  //Print location
       delay(500);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("s", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(cogG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
-      display.print("s");
+      display.print(cogG);
       display.setFont(&FreeSansBold9pt7b);
       display.print(" Location: ");
       display.print(city);
@@ -589,10 +683,10 @@ void introScreen(int message = 0) {
     case 4:  //Print timezone
       delay(500);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("i", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
-      display.print("s");
+      display.print(cogG);
       display.setFont(&FreeSansBold9pt7b);
       display.print(" Timezone: ");
       display.print(timezone);
@@ -601,7 +695,7 @@ void introScreen(int message = 0) {
     case 5:  //Set Clock
       delay(500);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("i", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
       display.print("a");
@@ -612,7 +706,7 @@ void introScreen(int message = 0) {
     case 6:  //Done
       delay(200);
       display.setFont(&slateIcons9pt7b);
-      display.getTextBounds("i", 0, 0, &xP, &yP, &w, &h);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
       startY = startY + h + spacer * 4;
       display.setCursor(startX, startY);
       display.setFont(&FreeSansBold9pt7b);
@@ -667,6 +761,8 @@ void setup() {
   displayWidth = display.width();
   displayHeight = display.height();
 
+
+  //initialBoot = false; //Temp
   // initialize RTC--------------------------------------------------------------------------------
   initRTC(initialBoot);
 
@@ -687,7 +783,7 @@ void setup() {
     //reset settings - wipe credentials for testing
     //wm.resetSettings();
 
-    wm.setConfigPortalTimeout(60);
+    wm.setConfigPortalTimeout(120);
     wm.setAPCallback(configModeCallback);
 
     bool res;
@@ -699,6 +795,14 @@ void setup() {
     } else {
       //if you get here you have connected to the WiFi
       Serial.println("We have connected.)");
+
+      //strcpy(savedSSID, WiFi.SSID());
+
+      WiFi.SSID().toCharArray(savedSSID,128);
+      //savedIP = WiFi.localIP().toString().c_str();
+
+      IPAddress ip = WiFi.localIP();
+      sprintf(savedIP, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
 
       if (!isWifiInited()) {
         noteWifiInited();
@@ -724,17 +828,24 @@ void setup() {
       delay(2000);
       introScreen(5);  //set clock
       syncTimeNTP();
-      shouldConnect = true;
+      saveShortTermMeasure(); //get units of measure
+      savedScreenSetting = getDefaultScreen(); //get and save default screen
+      checkTempScreenSetting();
+
+      wifiAttempting = true;
       initialConnection = true;
-      requestWeatherForecast = true;
       requestQuote = true;
       requestAirQuality = true;
       requestOblique = true;
+      requestRiddle = true;
+      requestWeatherForecasts = true;
     }
 
     initRTCInterrupts();
     introScreen(6);  //done
     timeoutCounter = millis() + MILLS_BEFORE_DEEP_SLEEP;
+
+    setColorMode(); //do this after RTC init in case we are on auto mode
   }
 
   //Print the wakeup reason for ESP32
@@ -753,6 +864,16 @@ void loop() {
     Serial.println("attempting to connect to wifi");
     initialConnection = true;
     shouldConnect = false;
+    wifiAttempting = true;
+  }
+
+  if (WiFi.status() != WL_CONNECTED && wifiAttempting && millis() > wifiTimeoutCounter) {
+    wifiFailed = true;
+    shouldConnect = false;
+
+    if (currentDisplay == HOME) {
+      timeoutCounter = 0;
+    }
   }
 
 
@@ -767,6 +888,7 @@ void loop() {
 
     connect();
 
+    wifiFailed = false;
     initialConnection = false;
     shouldBeConnected = true;
   }
@@ -779,26 +901,14 @@ void loop() {
     requestTodos = false;
   }
 
-  if (currentDisplay == TODO && updatedTodos) {
-    selectedTodo = 0;
-    updatedTodos = false;
-    renderTodoDisplay(false);  //no need to additional refresh
-    Serial.println("We have todos to show");
-    timeoutCounter = millis() + MILLS_BEFORE_DEEP_SLEEP_SHORT;
-  }
 
-  if (requestCurrentWeather && shouldBeConnected) {
-    Serial.println("Send Current Weather request");
-    readyToSleep[sleepCheckWeather] = 1;  //for weather
-    requestCurrent();
-    requestCurrentWeather = false;
-  }
-
-  if (requestWeatherForecast && shouldBeConnected) {
-    Serial.println("Send Weather Forecast request");
-    readyToSleep[sleepCheckWeather] = 1;  //for weather
-    requestForecast();
-    requestWeatherForecast = false;
+  if (requestWeatherForecasts && shouldBeConnected) {
+    Serial.println("Send All Forecast request");
+    readyToSleep[sleepCheckCWeather] = 1;  //for current weather
+    readyToSleep[sleepCheckDWeather] = 1;  //for daily weather
+    readyToSleep[sleepCheckHWeather] = 1;  //for hourly weather
+    requestWeatherForecastsCall();
+    requestWeatherForecasts = false;
   }
 
   if (requestQuote && shouldBeConnected) {
@@ -822,6 +932,12 @@ void loop() {
     requestOblique = false;
   }
 
+  if (requestRiddle && shouldBeConnected) {
+    Serial.println("Send Riddle request");
+    readyToSleep[sleepCheckRiddle] = 1;  //for riddle
+    requestDailyRiddle();
+    requestRiddle = false;
+  }
 
   if (padPressed) {
     selectFunction();
@@ -876,6 +992,7 @@ void loop() {
   if (millis() > timeoutCounter) {
     showSeconds = false;
     showMenu = false;
+    wifiAttempting = false;
     renderMainDisplay();
     if (millis() > timeoutCounter) {  //check for a second time, because we may have change it due to an alarm
       handleSleep();
@@ -886,7 +1003,6 @@ void loop() {
 }
 
 void handleSleep() {
-  testBoot++;
 
   disconnectWifi();
 
@@ -927,7 +1043,8 @@ void handleSleep() {
     }
   }
 
-  if ((timerEnabled && !timerActive && timerH < 1 && timerM < 2) || (usb_plugged_in) ){
+  //if ((timerEnabled && !timerActive && timerH < 1 && timerM < 2) || (usb_plugged_in) ){
+  if (timerEnabled && !timerActive && timerH < 1 && timerM < 2) {
     Serial.println("light sleep");
     Serial.flush();
     esp_light_sleep_start();
