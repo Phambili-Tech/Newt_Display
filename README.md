@@ -9,21 +9,38 @@ This library includes the source code used in the Newt display. You can modify t
 
 You can read more about Newt at [*https://phambili.tech/newt*](https://phambili.tech/newt)
 
-Planned Engancements/Fixes for next release
+Planned Enhancement/Fixes/Fixes for next release
 ---------------------------------------------
 
-Version 1.1.0 - roadmap
-- User Option: switch between 12 and 24 hour time format
-- User Option: switch between Imperial and Metric units
-- User Option: switch switch between default quotes and weather display screen
-- User Option: download beta versions of the code
-- Arduino library examples (Hello World, Wifi connect to get time, connect to MQTT)
+**Version 1.1.0- RC1**
 
-Version 1.1.X - roadmap
+All - you can now download version 1.1.0-RC1 for manual testing. We've added a ton of new features. I'm in the process of writing up the official documentation, but at a high level:
+
+- New API for alerts (beta)
+- New API for riddles/brainteasers
+- Major change in weather API (new provider and additional weather details)
+  - UV
+  - Sunrise/sunset
+  - Humidity
+  - Feels like weather
+- Updated settings options:
+  - 12/24 Hour clock
+  - Nighttime screen mode
+  - more Settings details
+  - Quote or Weather (or rotating) main screen
+  - Imperial or Metric units
+- Hello World Arduino example that explains how do:
+  - Write to the screen
+  - Enable the touchpads
+  - Emit a beep from the device
+  
+You can find instructions for manual download here-> https://github.com/Phambili-Tech/Newt_Display/discussions/37 
+
+**Version 1.1.0+ - roadmap**
 - change timezone
 - change location
 - icon documentation
-- service-sde code docuumentation
+- service-side code docuumentation
 
 License Information
 -------------------
