@@ -61,6 +61,7 @@
 #define digiclockG "}" 
 #define uvG "=" 
 #define puzzleG "v" 
+#define volumeG "V" 
 
 // Weather Font
 #define feelslikeG 0 
