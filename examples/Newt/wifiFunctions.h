@@ -494,7 +494,9 @@ void setupWifiDisplay() {
 
 }
 
-void getDeviceDetails() {
+int getDeviceDetails() {
+
+  int statusMsg = 0;
 
   const int httpsPort = 443;  //HTTPS= 443 and HTTP = 80
   WiFiClientSecure httpsClient;
@@ -542,7 +544,7 @@ void getDeviceDetails() {
   if (!httpsClient.find(endOfHeaders)) {
     Serial.println(F("Invalid response"));
     httpsClient.stop();
-    return;
+    return 1;
   }
 
   StaticJsonDocument<900> outdoc;
@@ -553,7 +555,7 @@ void getDeviceDetails() {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error.f_str());
     httpsClient.stop();
-    return;
+    return 1;
   }
 
   // Extract values
@@ -613,6 +615,8 @@ void getDeviceDetails() {
 
   // Disconnect
   httpsClient.stop();
+
+  return statusMsg;
 
 }
 
@@ -814,7 +818,7 @@ void execOTA() {
 
     unsigned long timeout = millis();
     while (client_upgrade.available() == 0) {
-      if (millis() - timeout > 5000) {
+      if (millis() - timeout > 9000) {
         client_upgrade.stop();
         upgradeSoftwareDisplay(4);
         return;

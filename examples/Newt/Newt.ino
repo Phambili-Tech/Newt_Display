@@ -46,8 +46,8 @@
 #define SWVERSION_MAJOR 1
 #define SWVERSION_MINOR 1
 #define SWVERSION_PATCH 0
-#define RC true
-#define SWVERSION_RC 1
+#define RC false
+#define SWVERSION_RC 0
 
 /* You only need to format SPIFFS the first time you run a
    test or else use the SPIFFS plugin to create a partition
@@ -715,6 +715,18 @@ void introScreen(int message = 0) {
       delay(300);
       renderMainDisplay();
       break;
+    case 7:  //Error getting data
+      delay(200);
+      display.setFont(&slateIcons9pt7b);
+      display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
+      startY = startY + h + spacer * 4;
+      display.setCursor(startX, startY);
+      display.setFont(&FreeSansBold9pt7b);
+      display.print("There was an error getting device data. Please reboot NEWT");
+      display.refresh();
+      delay(300);
+      renderMainDisplay();
+      break;
   }
 }
 
@@ -798,7 +810,7 @@ void setup() {
 
       //strcpy(savedSSID, WiFi.SSID());
 
-      WiFi.SSID().toCharArray(savedSSID,128);
+      WiFi.SSID().toCharArray(savedSSID, 128);
       //savedIP = WiFi.localIP().toString().c_str();
 
       IPAddress ip = WiFi.localIP();
@@ -821,12 +833,18 @@ void setup() {
         delay(500);
       }
       introScreen(2);  //initializing Device
-      getDeviceDetails();
-      introScreen(3);  //print location
-      delay(2000);
-      introScreen(4);  //print timezone
-      delay(2000);
-      introScreen(5);  //set clock
+      int statusMsg = getDeviceDetails();
+
+      if (statusMsg > 0) {
+        introScreen(7);  //display error message
+        delay(3000);
+      } else {
+        introScreen(3);  //print location
+        delay(2000);
+        introScreen(4);  //print timezone
+        delay(2000);
+        introScreen(5);  //set clock
+      }
       syncTimeNTP();
       saveShortTermMeasure(); //get units of measure
       savedScreenSetting = getDefaultScreen(); //get and save default screen
