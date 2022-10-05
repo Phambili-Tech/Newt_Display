@@ -79,25 +79,49 @@ void batteryManagement() {
 
 void checkLatestVersion() {
 
-  if (SWVERSION_MAJOR > latest_ver_major) {
-    versionUpdateAvailable = false;
-    return;
+  int latestMajorLarger = -1;
+  int latestMinorLarger = -1;
+  int latestPatchLarger = -1;
+
+  if (latest_ver_major > SWVERSION_MAJOR) {
+    latestMajorLarger = 1;
+  } else if (latest_ver_major == SWVERSION_MAJOR) {
+    latestMajorLarger = 0;
   }
 
-  if (SWVERSION_MINOR > latest_ver_minor) {
-    versionUpdateAvailable = false;
-    return;
+  if (latest_ver_minor > SWVERSION_MINOR) {
+    latestMinorLarger = 1;
+  } else if (latest_ver_minor == SWVERSION_MINOR) {
+    latestMinorLarger = 0;
   }
 
-  if (SWVERSION_PATCH < latest_ver_patch) {
+  if (latest_ver_patch > SWVERSION_PATCH) {
+    latestPatchLarger = 1;
+  } else if (latest_ver_patch == SWVERSION_PATCH) {
+    latestPatchLarger = 0;
+  }
+
+
+  if (latestMajorLarger > 0) {
     versionUpdateAvailable = true;
     return;
   }
 
-  if ((SWVERSION_MAJOR == latest_ver_major) && (SWVERSION_MINOR == latest_ver_minor) && (SWVERSION_PATCH == latest_ver_patch) && SWVERSION_RC){
+  if (latestMajorLarger == 0 && latestMinorLarger > 0) {
     versionUpdateAvailable = true;
     return;
-  } 
+  }
+
+  if (latestMajorLarger == 0 && latestMinorLarger == 0 && latestPatchLarger > 0) {
+    versionUpdateAvailable = true;
+    return;
+  }
+
+
+  if ((SWVERSION_MAJOR == latest_ver_major) && (SWVERSION_MINOR == latest_ver_minor) && (SWVERSION_PATCH == latest_ver_patch) && SWVERSION_RC) {
+    versionUpdateAvailable = true;
+    return;
+  }
 
   versionUpdateAvailable = false;
 
@@ -436,14 +460,14 @@ void renderDeviceStatus() {
   if (wifiAttempting || wifiFailed) {
     display.setFont(&slateIcons9pt7b);
     display.getTextBounds(wifiG, 0, 0, &xP, &yP, &w, &h);
-    display.setCursor(tab + displayMarginW / 2, displayMarginH/3 + h);
+    display.setCursor(tab + displayMarginW / 2, displayMarginH / 3 + h);
     if (wifiAttempting) {
       display.setFont(&slateIcons9pt7b);
       display.print(wifiG);
     } else {
       display.print(resetwifiG);
     }
-   tab += w + 5;
+    tab += w + 5;
   }
 
 }

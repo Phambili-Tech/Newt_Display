@@ -45,7 +45,7 @@
 //#include "USB.h"
 #define SWVERSION_MAJOR 1
 #define SWVERSION_MINOR 1
-#define SWVERSION_PATCH 0
+#define SWVERSION_PATCH 3
 #define RC false
 #define SWVERSION_RC 0
 
