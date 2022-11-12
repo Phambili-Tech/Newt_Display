@@ -16,6 +16,43 @@ RTC_DATA_ATTR volatile byte pausedPomodoroS = 0;
 
 RTC_DATA_ATTR volatile int32_t lastEpoch;
 
+//------Troubleshooting functions ----------
+
+void printToDisplay(char *msg) {
+
+  if (TROUBLESHOOT) {
+    display.fillScreen(BGCOLOR);
+    display.setTextColor(TEXTCOLOR);
+    display.setFont(&FreeSansBold9pt7b);
+    display.setCursor(10, 20);
+    display.println(msg);
+    display.refresh();
+    delay(200);
+  }
+}
+
+//------SPIFFS clean up functions ----------
+
+void cleanSpiffs() {
+  File root = SPIFFS.open("/");
+
+  File file = root.openNextFile();
+
+  while (file) {
+
+    Serial.print("FILE: ");
+    Serial.print(file.name());
+
+    if (SPIFFS.remove(file.path())) {
+      Serial.println("-- DELETED");
+    } else {
+      Serial.println("-- ERROR deleting");
+    }
+
+    file = root.openNextFile();
+  }
+}
+
 // -----Twenty Four Hour Functions ---------
 boolean isTwentyFourHour() {
   //return true;

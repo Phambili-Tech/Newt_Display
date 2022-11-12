@@ -45,10 +45,11 @@
 //#include "USB.h"
 #define SWVERSION_MAJOR 1
 #define SWVERSION_MINOR 1
-#define SWVERSION_PATCH 3
-#define RC false
+#define SWVERSION_PATCH 4
+#define RC true
 #define SWVERSION_RC 0
 
+#define TROUBLESHOOT false			  
 /* You only need to format SPIFFS the first time you run a
    test or else use the SPIFFS plugin to create a partition
    https://github.com/me-no-dev/arduino-esp32fs-plugin */
@@ -66,7 +67,7 @@
 #include <WiFiClientSecure.h>
 #include <Update.h>
 #include <HTTPClient.h>
-#include <MQTT.h>
+#include <MQTT.h>  //https://github.com/256dpi/arduino-mqtt
 #include <ArduinoJson.h>
 
 #include <stdio.h>
@@ -615,8 +616,24 @@ void introScreen(int message = 0) {
       display.print("by Phambili");
       startY = startY + h + spacer;
       display.setCursor(displayWidth - (displayMarginW * 3 + w), startY);
-      display.print("version: ");
-      display.print(SWVERSION_MAJOR); display.print("."); display.print(SWVERSION_MINOR); display.print("."); display.print(SWVERSION_PATCH);
+      display.print("v: ");
+      display.print(SWVERSION_MAJOR);
+      display.print(".");
+      display.print(SWVERSION_MINOR);
+      display.print(".");
+      display.print(SWVERSION_PATCH);
+
+      if (RC) {
+        display.print(" rc-");
+        display.print(SWVERSION_RC);
+      }
+
+      if (TROUBLESHOOT) {
+        display.setCursor(displayWidth - (displayMarginW * 3 + w), startY + 16);
+        display.println("Troubleshooter");
+      }
+
+
       display.refresh();
 
       delay(1500);
@@ -786,6 +803,7 @@ void setup() {
 
     rtc.writeRegister(RV3028_STATUS, 0x00);
 
+	cleanSpiffs();			  
     introScreen();
     introScreen(1);  //connecting to Wifi
 
