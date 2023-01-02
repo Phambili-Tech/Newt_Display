@@ -401,13 +401,13 @@ void renderSettingsInfoDisplay(int msg = 0) {
 
     display.setFont(&FreeSansBold9pt7b);
     display.setCursor(startX, startY);
-    display.print("1. Arduino ESP 2.0.6");
+    display.print("1. Updated Icons");
 
     startY += spacer;
 
     display.setFont(&FreeSansBold9pt7b);
     display.setCursor(startX, startY);
-    display.print("2. New Settings Options (1.1.3):");
+    display.print("2. New Settings Options & Info:");
 
     startY += spacer;
 
